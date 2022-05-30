@@ -4,16 +4,17 @@ import time
 from typing import List, Tuple
 
 class SensorDataWriter(object):
-    def __init__(self, filename, num_sensor):
+    def __init__(self, working_dir, filename, num_sensor):
         header = ["distance"]
         header += [f"laser{i}" for i in range(num_sensor)]
         header += ["time", "latitude", "longitude"]
 
         self._num_sensor = num_sensor
-        self._file = open(filename, 'w')
+        self._dir = working_dir
+        self._file = open(f"{working_dir}/{filename}", 'w')
         self._filename = filename
         self._writer = csv.writer(self._file)
-
+        
         self._writer.writerow(header)
 
         self._prev_laser = [0]*num_sensor
@@ -22,6 +23,10 @@ class SensorDataWriter(object):
     @property
     def filename(self):
         return self._filename
+
+    @property
+    def dir(self):
+        return self._dir
 
     def build_data(self, encoder: float, lasers: List[int], gps: Tuple[float, float]):
         print(encoder, lasers, gps)

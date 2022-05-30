@@ -25,7 +25,8 @@ import csv
 from gps import GruttoGPS
 from datawriter import SensorDataWriter
 from datetime import datetime
-
+import os
+import cv2
 
 class GruttoGras(object):
     def __init__(self, display, serial, cam, gps):
@@ -35,9 +36,11 @@ class GruttoGras(object):
         self._gps = gps
         
         self._writer: SerialDataWriter = None
-        self._gps_coords = None
+        self._gps_coords = (0, 0)
         self._prev_laser_state = None
         self._measure_state: bool = False
+
+        self._camera_frames = None
 
     #START CODE FOR READING CAMERA
     @staticmethod
@@ -54,6 +57,7 @@ class GruttoGras(object):
 
     async def handle_frames(self, frames):
         self._display.set_frames(frames)
+        self._camera_frames = frames
 
     async def camera_loop(self):
         loop = asyncio.get_event_loop()
@@ -90,14 +94,15 @@ class GruttoGras(object):
         self._display.show_file_saved = False
         now = datetime.now()
         now_s = now.strftime("%Y-%m-%d %H-%M-%S")
-        writer = SensorDataWriter(f"{config.DATA_DIRECTORY}/{now_s}.csv", config.NUM_LASER_SENSORS)
+        folder_name = f"{config.DATA_DIRECTORY}/{now_s}"
+        os.mkdir(folder_name)
+        writer = SensorDataWriter(folder_name, "data.csv", config.NUM_LASER_SENSORS)
         self._writer = writer
 
     def _stop_measurement(self):
         self._measure_state = False
-        filename = self._writer.filename.split("/")[-1]
-        filename = filename.split(".")[0]
-        self._display.file_saved_name = filename
+        folder = self._writer.dir.split("/")[-1]
+        self._display.file_saved_name = folder
         self._display.show_file_saved = True
         self._writer.close()
 
@@ -117,13 +122,35 @@ class GruttoGras(object):
     
     def gps_line_callback(self, gps):
         if hasattr(gps, "lat") and hasattr(gps, "lon"):
-            self._gps_coords = (gps.latitude, gps.longitude)
+            if gps.lat != "" and gps.lon != "":
+                self._display.show_no_gps = False
+                self._gps_coords = (gps.lat, gps.lon)
+   
+    def on_gui_photo_button(self):
+        if not self._measure_state:
+            return #do nothing if meaure not active
 
+        photo_dir = f"{self._writer.dir}/photos"
+        depth_dir = f"{self._writer.dir}/depth"
+        depth_img_dir = f"{self._writer.dir}/depth_img"
+
+        dirs = [photo_dir, depth_dir, depth_img_dir]
+        for d in dirs:
+            if not os.path.isdir(d):
+                os.mkdir(d)
+
+        now = datetime.now()
+        now_s = now.strftime("%Y-%m-%d %T")
+        cv2.imwrite(f"{photo_dir}/{now_s}.png", self._camera_frames[0])
+        cv2.imwrite(f"{depth_dir}/{now_s}.png", self._camera_frames[1])
+        cv2.imwrite(f"{depth_img_dir}/{now_s}.png", self._camera_frames[2])
+    
     async def run(self):
         loop = asyncio.get_event_loop()
 
         self._display.measure_button_callback = self.on_gui_measure_button
         self._display.reset_button_callback = self.on_gui_reset_button
+        self._display.photo_button_callback = self.on_gui_photo_button
         self._gps.gps_line_callback = self.gps_line_callback
         self._serial.newline_callback = self.on_serial_newline_callback
 
@@ -134,6 +161,7 @@ class GruttoGras(object):
 def build_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--nullcam", action="store_true")
+    parser.add_argument("--minimized", "-m", action="store_false")
     return parser.parse_args()
 
 def main():
@@ -142,7 +170,7 @@ def main():
 
     ser: GruttoKar = GruttoKar.from_dev(config.ARDUINO_DEV_STRING)
     gps: GruttoGPS = GruttoGPS.from_dev(config.GPS_DEV_STRING)
-    disp: GruttoDisplay = GruttoDisplay()
+    disp: GruttoDisplay = GruttoDisplay(args.minimized)
     
     if (args.nullcam):
         cam = NullCam

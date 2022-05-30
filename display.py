@@ -3,10 +3,6 @@
 import sys
 import cv2
 import numpy as np
-try:
-    from zed_camera import ZedCam
-except ModuleNotFoundError:
-    print("zed cam not supported on this platform")
 from datetime import datetime
 from enum import Enum
 import asyncio
@@ -30,9 +26,10 @@ class GruttoDisplay(object):
     CAM_AREA = ((186, 14), (1011, 414))    
 
 
-    def __init__(self):
+    def __init__(self, fullscreen=True):
         cv2.namedWindow(self.WINDOW_NAME, cv2.WINDOW_NORMAL)
-        #cv2.setWindowProperty(self.WINDOW_NAME, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+        if fullscreen:
+            cv2.setWindowProperty(self.WINDOW_NAME, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
         cv2.setMouseCallback(self.WINDOW_NAME, self.mouse_callback)
         self.background = cv2.imread('ui.png')
         self.view_mode: View = View.color
@@ -41,15 +38,26 @@ class GruttoDisplay(object):
 
         self.file_saved_name: str = ""
         self.show_file_saved: bool = False
+        self.show_no_gps: bool = True
 
         self.BTNS = (
             ((14, 15), (174, 297), self.switch_view),
             ((14, 309), (174, 590), self.btn_measure),
-            ((833, 433), (1011, 590), self.btn_reset)
+            ((833, 433), (1011, 590), self.btn_reset),
+            self.CAM_AREA+(self.btn_photo,)
         )
 
         self._measure_button_callback = None
         self._reset_button_callback = None
+        self._photo_button_callback = None
+
+    @property
+    def photo_button_callback(self):
+        return self._photo_button_callback
+
+    @photo_button_callback.setter
+    def photo_button_callback(self, callback):
+        self._photo_button_callback = callback
 
     @property
     def reset_button_callback(self):
@@ -105,6 +113,11 @@ class GruttoDisplay(object):
             base = cv2.putText(base, f"Saved to \"{self.file_saved_name}\"", (220, 510), cv2.FONT_HERSHEY_DUPLEX, 0.9, (0,0,0,), thickness=2)
         #END DATA SAVED TEXT
 
+        #ADD NO SATALITE TEXT
+        if self.show_no_gps:
+            base = cv2.putText(base, "No GPS Connection", (220, 480), 
+                    cv2.FONT_HERSHEY_DUPLEX, 0.9, (0,0,0,), thickness=2)
+
         return base
 
     def build_waitscreen(self):
@@ -129,6 +142,12 @@ class GruttoDisplay(object):
         if self._measure_button_callback:
             self._measure_button_callback(self.measure_active)
 
+    def btn_photo(self):
+        print("photo")
+        if self._photo_button_callback:
+            print("callback")
+            self._photo_button_callback()
+
     def btn_reset(self):
         if self._reset_button_callback:
             self._reset_button_callback()
@@ -145,6 +164,9 @@ class GruttoDisplay(object):
         while True:
             self.tick()
             key = cv2.waitKey(1)
+            if key == ord('q'):
+                import os
+                os.popen("pkill python")
             await asyncio.sleep(0.033)
 
 if __name__ == "__main__":
