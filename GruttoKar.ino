@@ -37,7 +37,7 @@ void setup() {
 }
 
 float encoder_convert_to_meter(long encoder_ticks){
-  return -float(encoder_ticks)/ENCODER_PULSES_PER_METER;
+  return float(encoder_ticks)/ENCODER_PULSES_PER_METER;
 }
 
 String encoder_float_to_string(float encoder)
@@ -90,9 +90,9 @@ bool read_encoder(float *encoder_distance)
     debug_encoder_status(current_encoder);
   }
   
-  if (prev_encoder+UPDATE_DISTANCE_TICKS < -current_encoder){
+  if (current_encoder > prev_encoder+UPDATE_DISTANCE_TICKS){
     *encoder_distance = encoder_convert_to_meter(current_encoder);
-    prev_encoder = -current_encoder;
+    prev_encoder = current_encoder;
     return true;
   } else {
     return false;
