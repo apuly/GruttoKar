@@ -4,7 +4,7 @@
 #define ENCODER_USE_INTERRUPTS
 #include <Encoder.h>
 
-#define ENCODER_PULSES_PER_METER 7848
+#define ENCODER_PULSES_PER_METER 4481
 #define ENCODER_ROUNDING 3
 //every 2 centimeters, the decoder distance is written to the serial bus
 #define UPDATE_DISTANCE_METER 0.01
@@ -19,7 +19,9 @@
 
 Encoder encoder(CONTROLLINO_IN0, CONTROLLINO_IN1);
 
-char laser_pins[] = {CONTROLLINO_A5, CONTROLLINO_A4, CONTROLLINO_A0, CONTROLLINO_A3, CONTROLLINO_A2, CONTROLLINO_A1};
+//char laser_pins[] = {CONTROLLINO_A5, CONTROLLINO_A4, CONTROLLINO_A0, CONTROLLINO_A3, CONTROLLINO_A2, CONTROLLINO_A1};
+char laser_pins[] = {CONTROLLINO_A0, CONTROLLINO_A3, CONTROLLINO_A2, CONTROLLINO_A1};
+
 const int NUM_PINS = sizeof(laser_pins);
 
 char prev_laser_data[NUM_PINS] = {0};
