@@ -106,7 +106,7 @@ bool read_laser_sensors(uint8_t *sensor_data) {
     if (i > 1) {
       laser_status = !digitalRead(laser_pins[i]);
     } else {
-      laser_status = (analogRead(laser_pins[i]) > 100) ? 1 : 0;
+      laser_status = (analogRead(laser_pins[i]) > 100) ? 0 : 1;
     }
     sensor_data[i] = laser_status;
     if (laser_status != prev_laser_data[i]) {
