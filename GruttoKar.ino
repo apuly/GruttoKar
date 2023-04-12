@@ -102,16 +102,11 @@ bool read_encoder(float *encoder_distance)
 bool read_laser_sensors(uint8_t *sensor_data) {
   bool data_changed = false;
   for (int i = 0; i < NUM_PINS; i++) {
-    char laser_status = 0;
+    char laser_status;
     if (i > 1) {
       laser_status = !digitalRead(laser_pins[i]);
     } else {
-      if (analogRead(laser_pins[i])>100) {
-        laser_status = 0;
-      } else
-      {
-        laser_status = 1;
-      }
+      laser_status = (analogRead(laser_pins[i]) > 100) ? 1 : 0;
     }
     sensor_data[i] = laser_status;
     if (laser_status != prev_laser_data[i]) {
